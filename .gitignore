@@ -1,0 +1,24 @@
+# Dependencies (dev-only symlinks to the global pi install; recreate with scripts/link-deps.sh)
+node_modules/
+
+# Implementation-process state, evidence, and scratch (transient, not part of the deliverable)
+.implement-spec/
+
+# Editor / personal
+.vscode/
+
+# Logs and runtime output
+*.log
+
+# Local SQLite state
+*.db
+*.sqlite
+
+# pi subagent scratch dirs (if ever created in-tree)
+pi-subagent-*/
+pi-bgagent-*/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
