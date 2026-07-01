@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "gh-cli": {
+      "source": "yldgio/vibe-grimoire",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/gh-cli/SKILL.md",
+      "computedHash": "cbe644b0c6760ae2a1eaafa39133920d889331327065d92a131675a665273e56"
+    },
+    "implement-spec": {
+      "source": "yldgio/vibe-grimoire",
+      "sourceType": "github",
+      "skillPath": "skills/implement-spec/SKILL.md",
+      "computedHash": "4c53ebc4fb2f2b8e306e9adb2897f31afd3528fefcd34f09619da54ab4370289"
+    },
+    "specify": {
+      "source": "yldgio/vibe-grimoire",
+      "sourceType": "github",
+      "skillPath": "skills/specify/SKILL.md",
+      "computedHash": "8419ad8405e781a230473003f88cee559a1dcaa54201f78a9e33e887c7ff9b1d"
+    },
+    "the-goal": {
+      "source": "yldgio/vibe-grimoire",
+      "sourceType": "github",
+      "skillPath": "skills/the-goal/SKILL.md",
+      "computedHash": "2988d904ad1d5790c16db957497c1ec584e8ffc5a07729ffc99f1deb4b212e80"
+    }
+  }
+}
