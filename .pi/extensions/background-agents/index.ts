@@ -96,7 +96,35 @@ export default function (pi: ExtensionAPI) {
 
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const reg = getRegistry(ctx);
-			const discovery = discoverAgents(ctx.cwd, "user");
+			const discovery = discoverAgents(ctx.cwd, "both");
+
+			// Project-agent trust gate: if the action is launch and the resolved
+			// agent comes from a repo-controlled file (.pi/agents/), ask for
+			// confirmation before running it (only when a UI is available).
+			if (params.action === "launch" && params.agent) {
+				const candidate = discovery.agents.find((a) => a.name === params.agent);
+				if (candidate?.source === "project" && ctx.hasUI) {
+					const confirmed = await ctx.ui.confirm(
+						`Run project agent "${candidate.name}"?`,
+						`The agent "${candidate.name}" is defined in a repo-controlled file ` +
+							`(${candidate.filePath}). ` +
+							`Only run project agents from repositories you trust.`,
+					);
+					if (!confirmed) {
+						return {
+							content: [
+								{
+									type: "text" as const,
+									text: `Launch canceled: user declined to run project-scoped agent "${candidate.name}".`,
+								},
+							],
+							details: {},
+							isError: false,
+						};
+					}
+				}
+			}
+
 			const result = await runAction(
 				{
 					registry: reg,
