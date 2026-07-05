@@ -18,6 +18,20 @@ import {
 import type { AgentConfig } from "./agents.ts";
 import type { BgSession, SessionFactory } from "./registry.ts";
 
+/**
+ * All built-in tool names pi's SDK supports (per docs/sdk.md's "Tools" section).
+ * Note this is broader than the SDK's own createAgentSession() default (which
+ * only enables read/bash/edit/write) — when an agent's frontmatter omits
+ * `tools`, we deliberately enable every built-in rather than that narrower
+ * default or (the previous bug) an empty allowlist.
+ */
+export const ALL_BUILTIN_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls"] as const;
+
+/** Resolve the tools an agent should run with: its explicit allowlist, or all built-ins. */
+export function resolveTools(agentTools: string[] | undefined): string[] {
+	return agentTools ?? [...ALL_BUILTIN_TOOLS];
+}
+
 export interface RealFactoryDeps {
 	cwd: string;
 	// biome-ignore lint/suspicious/noExplicitAny: SDK types not imported here
@@ -65,7 +79,7 @@ export function createRealSessionFactory(deps: RealFactoryDeps): SessionFactory 
 			thinkingLevel: "off",
 			authStorage: deps.authStorage,
 			modelRegistry: deps.modelRegistry,
-			tools: agent.tools ?? [],
+			tools: resolveTools(agent.tools),
 			resourceLoader: loader,
 			sessionManager: SessionManager.inMemory(deps.cwd),
 		});

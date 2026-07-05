@@ -71,7 +71,8 @@ You are scout. Find things quickly and report compressed findings.
 ```
 
 - `name`, `description` — required.
-- `tools` — optional comma-separated built-in tool allowlist (omit for none/default).
+- `tools` — optional comma-separated built-in tool allowlist; **omit to enable all
+  built-in tools** (`read, bash, edit, write, grep, find, ls`) rather than none.
 - `model` — optional `provider/id`; when omitted the subagent **inherits the main model**.
 - Body — the subagent's system prompt.
 

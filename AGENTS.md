@@ -44,6 +44,13 @@ session factory, registry run loop, or agent discovery.
 - **Subagent isolation is load-bearing:** `session-factory.ts` points each subagent's
   `DefaultResourceLoader` at an empty temp `agentDir` so subagents do NOT recursively load
   this extension. Do not change this to the project `agentDir`.
+- **Agents get all built-in tools by default.** `agents.ts` leaves `AgentConfig.tools`
+  `undefined` when frontmatter omits `tools:`; `session-factory.ts`'s `resolveTools()`
+  resolves that to `ALL_BUILTIN_TOOLS` (`read, bash, edit, write, grep, find, ls`), not an
+  empty array and not the SDK's own narrower default. This was a real incident: an agent
+  definition without `tools:` previously launched with zero tools and a background
+  subagent silently hallucinated instead of reporting it had nothing to work with (see
+  `checks/d_default_tools.mjs`). Never write `tools: agent.tools ?? []` again.
 - **`send` uses a queued re-prompt** on the persistent session (not mid-run `steer`). This
   is intentional and deterministic; it preserves context across follow-ups. Preserve this
   semantics unless the spec's assumption A2 is revisited.
