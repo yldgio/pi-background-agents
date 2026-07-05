@@ -120,11 +120,12 @@ export async function runAction(deps: ToolDeps, params: ToolParams): Promise<Too
 		}
 		case "stop": {
 			if (!params.runId) return text('stop requires "runId".', true);
-			if (!registry.has(params.runId)) {
-				return text(`Unknown agent run id "${params.runId}". It may have already been stopped.`, true);
+			try {
+				await registry.stop(params.runId);
+				return text(`Stopped and disposed ${params.runId}.`);
+			} catch (e: any) {
+				return text(e?.message ?? String(e), true);
 			}
-			await registry.stop(params.runId);
-			return text(`Stopped and disposed ${params.runId}.`);
 		}
 		default:
 			return text(`Unknown action "${(params as any).action}". Valid: launch, send, status, collect, list, stop.`, true);
