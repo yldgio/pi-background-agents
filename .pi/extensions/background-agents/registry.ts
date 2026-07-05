@@ -11,6 +11,7 @@
  * tests can supply real AgentSessions or controllable fakes.
  */
 
+import { rmSync } from "node:fs";
 import type { AgentConfig } from "./agents.ts";
 
 export const MAX_CONCURRENT = 8;
@@ -34,12 +35,18 @@ export type DisplayItem =
 	| { type: "text"; text: string }
 	| { type: "toolCall"; name: string; args: Record<string, unknown> };
 
+/** Max display items retained per agent (ring-buffer cap). */
+const MAX_ITEMS = 200;
+
 interface AgentRecord {
 	runId: string;
 	agentName: string;
 	modelId?: string;
 	status: RunStatus;
 	task: string;
+	// Messages queued before the session was ready (pre-session window).
+	pendingQueue: string[];
+	// Messages queued while a dispatch is in-flight (post-session serialisation).
 	queue: string[];
 	items: DisplayItem[];
 	turns: number;
@@ -48,6 +55,8 @@ interface AgentRecord {
 	updatedAt: number;
 	session?: BgSession;
 	unsubscribe?: () => void;
+	// Temp directory created for this session's isolated agentDir; cleaned up on stop.
+	tmpDir?: string;
 	// resolves when the record reaches a terminal (done/error/stopped) state
 	// AND its queue is drained. Used by tests to await completion.
 	idle: Promise<void>;
@@ -129,6 +138,7 @@ export class BackgroundRegistry {
 			modelId: input.modelId,
 			status: "running",
 			task: input.task,
+			pendingQueue: [input.task],
 			queue: [],
 			items: [],
 			turns: 0,
@@ -142,8 +152,8 @@ export class BackgroundRegistry {
 		});
 		this.records.set(runId, rec);
 
-		// Kick off async session creation + first run.
-		void this.startSession(rec, input.agent).then(() => this.dispatch(rec, input.task));
+		// Kick off async session creation; flush pendingQueue once ready.
+		void this.startSession(rec, input.agent).then(() => this.flushPending(rec));
 		return runId;
 	}
 
@@ -151,13 +161,31 @@ export class BackgroundRegistry {
 		try {
 			const session = await this.factory({ agent, modelId: rec.modelId });
 			rec.session = session;
+			rec.tmpDir = (session as any)._tmpDir as string | undefined;
 			rec.unsubscribe = session.subscribe((event) => this.onEvent(rec, event));
 		} catch (e: any) {
 			rec.status = "error";
 			rec.error = `Failed to start agent: ${e?.message ?? String(e)}`;
 			rec.updatedAt = Date.now();
+			rec.pendingQueue = [];
 			rec._resolveIdle?.();
 		}
+	}
+
+	/**
+	 * Flush all messages buffered before the session was ready.
+	 * Dispatches the first item immediately; the rest are prepended to the
+	 * post-session queue so dispatch's own finally-loop drains them in order.
+	 */
+	private flushPending(rec: AgentRecord): void {
+		if (rec.status === "stopped" || rec.status === "error") return;
+		const pending = rec.pendingQueue.splice(0);
+		if (pending.length === 0) return;
+		const [first, ...rest] = pending;
+		// Prepend rest before any items already in queue (there should be none
+		// at this point, but be safe).
+		rec.queue = [...rest, ...rec.queue];
+		void this.dispatch(rec, first);
 	}
 
 	private onEvent(rec: AgentRecord, event: any): void {
@@ -175,6 +203,10 @@ export class BackgroundRegistry {
 			}
 			rec.updatedAt = Date.now();
 		}
+		// Ring-buffer cap: keep only the most recent MAX_ITEMS items.
+		if (rec.items.length > MAX_ITEMS) {
+			rec.items = rec.items.slice(-MAX_ITEMS);
+		}
 	}
 
 	/** Process one queued message as a run on the persistent session. */
@@ -184,15 +216,11 @@ export class BackgroundRegistry {
 			rec.queue.push(text);
 			return;
 		}
-		if (!rec.session) {
-			// session failed to start; error already set
-			return;
-		}
 		rec._busy = true;
 		rec.status = "running";
 		rec.updatedAt = Date.now();
 		try {
-			await rec.session.prompt(text);
+			await rec.session!.prompt(text);
 			if ((rec.status as RunStatus) !== "stopped") {
 				rec.status = "done";
 			}
@@ -214,9 +242,11 @@ export class BackgroundRegistry {
 	}
 
 	/**
-	 * Send a follow-up to a background agent. If it is currently running the
-	 * message is queued and processed after the current run; if idle it starts a
-	 * new run immediately. Same session either way → context preserved.
+	 * Send a follow-up to a background agent. If the session is not yet ready,
+	 * the message is buffered in pendingQueue and processed in order once the
+	 * session becomes available. If the session is ready, it is dispatched
+	 * immediately (or queued behind an in-flight run). Same session either way
+	 * → context preserved.
 	 */
 	send(runId: string, text: string): void {
 		const rec = this.mustGet(runId);
@@ -227,6 +257,11 @@ export class BackgroundRegistry {
 			rec.idle = new Promise<void>((resolve) => {
 				rec._resolveIdle = resolve;
 			});
+		}
+		// If the session is not yet ready, buffer in pendingQueue.
+		if (!rec.session) {
+			rec.pendingQueue.push(text);
+			return;
 		}
 		void this.dispatch(rec, text);
 	}
@@ -257,6 +292,7 @@ export class BackgroundRegistry {
 		const rec = this.mustGet(runId);
 		rec.status = "stopped";
 		rec.queue = [];
+		rec.pendingQueue = [];
 		rec.updatedAt = Date.now();
 		try {
 			await rec.session?.abort();
@@ -271,6 +307,14 @@ export class BackgroundRegistry {
 		}
 		rec._resolveIdle?.();
 		this.records.delete(runId);
+		// Clean up the isolated temp directory created for this session.
+		if (rec.tmpDir) {
+			try {
+				rmSync(rec.tmpDir, { recursive: true, force: true });
+			} catch {
+				/* ignore — OS may have already removed it */
+			}
+		}
 	}
 
 	/** Dispose all live sessions (shutdown). */
