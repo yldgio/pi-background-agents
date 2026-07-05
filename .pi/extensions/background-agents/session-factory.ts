@@ -69,6 +69,8 @@ export function createRealSessionFactory(deps: RealFactoryDeps): SessionFactory 
 			resourceLoader: loader,
 			sessionManager: SessionManager.inMemory(deps.cwd),
 		});
+		// Attach the temp dir path so the registry can clean it up on stop().
+		(session as any)._tmpDir = emptyAgentDir;
 		return session as unknown as BgSession;
 	};
 }
