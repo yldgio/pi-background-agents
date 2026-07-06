@@ -1,9 +1,17 @@
 {
-  "name": "background-agents-pi",
+  "name": "pi-background-agents",
   "version": "0.2.0",
   "description": "Background, re-contactable subagents for pi — delegate tasks to isolated in-process AgentSessions.",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yldgio/pi-background-agents.git"
+  },
+  "homepage": "https://github.com/yldgio/pi-background-agents#readme",
+  "bugs": {
+    "url": "https://github.com/yldgio/pi-background-agents/issues"
+  },
   "keywords": ["pi-package", "pi-extension", "subagent", "agents"],
   "pi": {
     "extensions": ["./index.ts"]
@@ -14,6 +22,14 @@
     "@earendil-works/pi-agent-core": "*",
     "@earendil-works/pi-tui": "*",
     "typebox": "*"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.80.3",
+    "@earendil-works/pi-ai": "0.80.3",
+    "@earendil-works/pi-agent-core": "0.80.3",
+    "@earendil-works/pi-tui": "0.80.3",
+    "typebox": "1.1.38",
+    "yaml": "2.9.0"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",

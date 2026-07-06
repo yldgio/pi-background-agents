@@ -20,5 +20,6 @@ ln -sfn "$PKG/node_modules/@earendil-works/pi-ai"         node_modules/@earendil
 ln -sfn "$PKG/node_modules/@earendil-works/pi-agent-core" node_modules/@earendil-works/pi-agent-core
 ln -sfn "$PKG/node_modules/@earendil-works/pi-tui"        node_modules/@earendil-works/pi-tui
 ln -sfn "$PKG/node_modules/typebox"                       node_modules/typebox
+ln -sfn "$PKG/node_modules/yaml"                          node_modules/yaml
 
 echo "Linked pi SDK packages into ./node_modules (from $PKG)."
