@@ -17,7 +17,11 @@ they run as isolated in-process `AgentSession`s and can be re-contacted (`send`)
 | `index.ts`, `registry.ts`, `tool.ts`, `agents.ts`, `session-factory.ts`, `view.ts` | The extension source (the deliverable) |
 | `checks/` | Deterministic check scripts + fixtures + evidence generators |
 | `agents/` | Sample agent definitions to copy into `~/.pi/agent/agents/` |
-| `specs/background-subagents.md` | The living spec: scope, decisions, evaluation criteria, outcome |
+| `.github/workflows/ci.yml` | CI: typecheck + check:fast on push to `main` and all PRs |
+| `specs/background-subagents.md` | The living spec for the extension: scope, decisions, evaluation criteria, outcome |
+| `specs/ci-and-docs.md` | The living spec for CI and this documentation set |
+| `CONTRIBUTING.md` | How to propose a change, required checks, verification discipline |
+| `CHANGELOG.md` | Version history |
 | `scripts/link-deps.sh` | Links the pi SDK into `./node_modules` so checks resolve imports |
 | `.agents/skills/` | Vendored workflow skills (`specify`, `implement-spec`, …) |
 
