@@ -32,12 +32,22 @@ markdown + frontmatter, and inherit the main agent's model when none is specifie
 
 ## Install / Use
 
-The extension lives at `.pi/extensions/background-agents/`, so pi **auto-discovers it as a
-project-local extension** once the project is trusted.
+This repo **is** the package (root `package.json` declares the `pi` manifest pointing at
+`index.ts`). Three ways to use it:
 
+**Project-local (this dev repo, or any project):** symlink or copy this folder into
+`.pi/extensions/background-agents/`, then trust the project:
 ```bash
-# from the repo root
+mkdir -p .pi/extensions && ln -s /path/to/this/repo .pi/extensions/background-agents
 pi -a          # -a trusts project-local files for this run (or trust when prompted)
+```
+
+**Global (all projects):** symlink/copy into `~/.pi/agent/extensions/background-agents/`.
+
+**As an installed pi package** (recommended for consuming a published copy):
+```bash
+pi install git:github.com/you/background-agents-pi   # or npm:, or a local path
+pi -e .                                                # try it for one run, from this repo root
 ```
 
 Then just talk to the main agent. Example prompts:
@@ -57,7 +67,17 @@ As a user you can observe (read-only):
 ### Defining agents
 
 Create markdown files with YAML frontmatter in `~/.pi/agent/agents/` (user scope, always
-loaded):
+loaded) — this repo ships three working samples in [`agents/`](agents/) (`echoer`, `coder`,
+`reviewer-codex`); copy the ones you want:
+
+```bash
+cp agents/*.md ~/.pi/agent/agents/
+```
+
+(`agents/` here is just a convenience folder for this repo — the extension's own discovery
+only looks at `~/.pi/agent/agents/` and `<project>/.pi/agents/`, not an installed package's
+files. `reviewer-codex.md` hardcodes a specific model; adjust it to a provider you have
+configured.)
 
 ```markdown
 ---
@@ -90,17 +110,15 @@ You are scout. Find things quickly and report compressed findings.
 
 ## Test
 
-The extension ships deterministic check scripts (`checks/D*.mjs`) and evidence generators.
+The extension ships deterministic check scripts (`checks/*.mjs`) and evidence generators.
 
 ```bash
 # one-time: link the pi SDK into ./node_modules so standalone scripts resolve imports
 bash scripts/link-deps.sh
 
-cd .pi/extensions/background-agents
-
 npm run typecheck     # tsc --noEmit
-npm run check:fast    # D3,D4,D7,D7b,D7c,D8 — fake-backed, no LLM, fast & deterministic
-npm run check:llm     # D2,D1,D6,D5 — real model calls (needs pi auth); validates A1/A2
+npm run check:fast    # fake-backed, no LLM, fast & deterministic (includes D2 discovery)
+npm run check:llm     # D1,D5,D6 — real model calls (needs pi auth); validates A1/A2
 npm run check         # all of the above
 ```
 
@@ -113,39 +131,37 @@ What the checks prove:
 - **D6** — `collect` returns the final output once done.
 - **D7/D7b/D7c** — stop disposes; the 9th launch is rejected; `collect` never blocks.
 - **D8** — shutdown disposes every live session.
+- **d_send_before_ready** — a follow-up sent before the session finishes starting is queued, not dropped.
+- **d_tmpdir_cleanup** — each session's isolated temp `agentDir` is removed on stop/disposeAll.
+- **d_stop_no_throw** — a `stop` race (run already gone) returns a clean error, never an uncaught throw.
+- **d_default_tools** — an agent with no `tools:` frontmatter gets all built-ins, not none.
 
 ## Package (share it)
 
-The extension is a self-contained pi package (`.pi/extensions/background-agents/`).
+The root `package.json` is publish-ready: it declares the `pi` manifest, the `pi-package`
+keyword, and the pi core packages as `peerDependencies` (`"*"`, never bundle them).
 
-1. Make `package.json` publish-ready — it already declares the `pi` manifest, the
-   `pi-package` keyword, and the pi core packages as `peerDependencies` (`"*"`, never
-   bundle them). Set a real `version`, `repository`, and remove `private` before publishing.
-2. Distribute and install by any pi source:
-
-   ```bash
-   pi install npm:background-agents-pi           # after npm publish
-   pi install git:github.com/you/background-agents
-   pi install ./.pi/extensions/background-agents  # local path
-   pi -e ./.pi/extensions/background-agents        # try for one run only
-   ```
-
-3. Bundle the sample agents by adding an `agents/` dir and shipping them, or document that
-   users drop agent markdown into `~/.pi/agent/agents/`.
+```bash
+pi install npm:background-agents-pi                      # after npm publish
+pi install git:github.com/you/background-agents-pi       # after pushing this repo
+pi install /path/to/this/repo                             # local path
+pi -e .                                                    # try it for one run only
+```
 
 See pi's `docs/packages.md` for npm/git sources, filtering, and gallery metadata.
 
 ## Architecture
 
 ```
-.pi/extensions/background-agents/
-├── index.ts            # registers the tool, widget, /agents command, shutdown cleanup
-├── registry.ts         # BackgroundRegistry — lifecycle, serialized run queue, cap
-├── tool.ts             # runAction — the action-enum dispatcher (pure, testable)
-├── agents.ts           # markdown+frontmatter discovery + parent-model inheritance
-├── session-factory.ts  # wires the registry to createAgentSession (isolated, in-memory)
-├── view.ts             # widget/roster/detail formatting (pure)
-└── checks/             # deterministic checks + fixtures + evidence generators
+.
+├── index.ts             # registers the tool, widget, /agents command, shutdown cleanup
+├── registry.ts          # BackgroundRegistry — lifecycle, serialized run queue, cap
+├── tool.ts              # runAction — the action-enum dispatcher (pure, testable)
+├── agents.ts            # markdown+frontmatter discovery + parent-model inheritance
+├── session-factory.ts   # wires the registry to createAgentSession (isolated, in-memory)
+├── view.ts              # widget/roster/detail formatting (pure)
+├── agents/              # sample agent definitions (copy into ~/.pi/agent/agents/)
+└── checks/               # deterministic checks + fixtures + evidence generators
 ```
 
 **Key decisions** (see the spec): in-process sessions (only way to re-contact a running

@@ -4,18 +4,19 @@ Base instructions for an AI agent working in this repository.
 
 ## What this project is
 
-A single pi extension: **background, re-contactable subagents**
-(`.pi/extensions/background-agents/`). The model launches named subagents on tasks; they run
-as isolated in-process `AgentSession`s and can be re-contacted (`send`), polled (`status`),
-and collected (`collect`). Full spec and verification record:
+A pi extension package: **background, re-contactable subagents**. This repo root **is** the
+package (see `package.json`'s `pi` manifest). The model launches named subagents on tasks;
+they run as isolated in-process `AgentSession`s and can be re-contacted (`send`), polled
+(`status`), and collected (`collect`). Full spec and verification record:
 [`specs/background-subagents.md`](specs/background-subagents.md).
 
 ## Layout
 
 | Path | What it is |
 |------|-----------|
-| `.pi/extensions/background-agents/` | The extension (the deliverable) |
-| `.pi/extensions/background-agents/checks/` | Deterministic check scripts + fixtures + evidence generators |
+| `index.ts`, `registry.ts`, `tool.ts`, `agents.ts`, `session-factory.ts`, `view.ts` | The extension source (the deliverable) |
+| `checks/` | Deterministic check scripts + fixtures + evidence generators |
+| `agents/` | Sample agent definitions to copy into `~/.pi/agent/agents/` |
 | `specs/background-subagents.md` | The living spec: scope, decisions, evaluation criteria, outcome |
 | `scripts/link-deps.sh` | Links the pi SDK into `./node_modules` so checks resolve imports |
 | `.agents/skills/` | Vendored workflow skills (`specify`, `implement-spec`, …) |
@@ -24,7 +25,6 @@ and collected (`collect`). Full spec and verification record:
 
 ```bash
 bash scripts/link-deps.sh            # once, so standalone scripts resolve @earendil-works/* and typebox
-cd .pi/extensions/background-agents
 npm run typecheck                    # tsc --noEmit — must be clean
 npm run check:fast                   # fake-backed, deterministic, no LLM
 npm run check:llm                    # real model calls; needs pi auth

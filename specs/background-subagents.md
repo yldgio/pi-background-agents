@@ -260,6 +260,8 @@ agent purpose/task and live activity were added to the widget/roster/detail view
 - Live end-to-end in pi: the main model drove `launch` → `collect` and reported the
   subagent's output.
 
-**Deliverable:** `.pi/extensions/background-agents/` (`index.ts`, `registry.ts`,
-`tool.ts`, `agents.ts`, `session-factory.ts`, `view.ts`, `checks/`). Run checks with
-`npm run check` in that directory.
+**Deliverable:** `index.ts`, `registry.ts`, `tool.ts`, `agents.ts`, `session-factory.ts`,
+`view.ts`, `checks/`. Originally implemented at `.pi/extensions/background-agents/`
+(project-local); flattened to the repo root on 2026-07-05 so this repo could stand alone
+as a publishable pi package (root `package.json`'s `pi` manifest now points at `index.ts`
+directly). Run checks with `npm run check` from the repo root.
