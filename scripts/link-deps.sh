@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Link the pi SDK packages into a project-local node_modules so the standalone
-# check scripts (.pi/extensions/background-agents/checks/*.mjs) can resolve
+# check scripts (checks/*.mjs) can resolve
 # `@earendil-works/*` and `typebox`. These resolve from the globally installed
 # pi package; nothing is copied. Safe to re-run.
 set -euo pipefail

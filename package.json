@@ -1,6 +1,6 @@
 {
   "name": "background-agents-pi",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Background, re-contactable subagents for pi — delegate tasks to isolated in-process AgentSessions.",
   "type": "module",
   "license": "MIT",
@@ -17,8 +17,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "check:fast": "for c in d3 d4 d7 d7b d7c d8; do node checks/$c.mjs || exit 1; done",
-    "check:llm": "node checks/d2.mjs && node checks/d1.mjs && node checks/d6.mjs && node checks/d5.mjs",
+    "check:fast": "for c in d3 d4 d7 d7b d7c d8 d_send_before_ready d_tmpdir_cleanup d_stop_no_throw d_default_tools d2; do node checks/$c.mjs || exit 1; done",
+    "check:llm": "node checks/d1.mjs && node checks/d6.mjs && node checks/d5.mjs",
     "check": "npm run typecheck && npm run check:fast && npm run check:llm"
   }
 }
