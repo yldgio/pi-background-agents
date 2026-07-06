@@ -1,5 +1,7 @@
 # Background Agents — a pi extension
 
+[![CI](https://github.com/yldgio/pi-background-agents/actions/workflows/ci.yml/badge.svg)](https://github.com/yldgio/pi-background-agents/actions/workflows/ci.yml)
+
 Delegate work to **background, re-contactable subagents**. The main agent (the model)
 launches a named subagent on a task, keeps working while it runs concurrently, then sends
 follow-ups, checks status, and collects results — all through a single tool. Users get a
@@ -46,7 +48,7 @@ pi -a          # -a trusts project-local files for this run (or trust when promp
 
 **As an installed pi package** (recommended for consuming a published copy):
 ```bash
-pi install git:github.com/you/background-agents-pi   # or npm:, or a local path
+pi install git:github.com/yldgio/pi-background-agents   # or npm:, or a local path
 pi -e .                                                # try it for one run, from this repo root
 ```
 
@@ -142,8 +144,8 @@ The root `package.json` is publish-ready: it declares the `pi` manifest, the `pi
 keyword, and the pi core packages as `peerDependencies` (`"*"`, never bundle them).
 
 ```bash
-pi install npm:background-agents-pi                      # after npm publish
-pi install git:github.com/you/background-agents-pi       # after pushing this repo
+pi install npm:pi-background-agents                      # after npm publish
+pi install git:github.com/yldgio/pi-background-agents       # after pushing this repo
 pi install /path/to/this/repo                             # local path
 pi -e .                                                    # try it for one run only
 ```
