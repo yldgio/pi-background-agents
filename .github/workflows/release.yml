@@ -1,0 +1,110 @@
+name: Release
+
+# Cut a release by pushing a semver tag that matches package.json, e.g.:
+#   npm version patch    # bumps package.json + CHANGELOG entry, creates the tag
+#   git push --follow-tags
+# Consumers then install the tagged copy with:
+#   pi install git:github.com/yldgio/pi-background-agents
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)release, e.g. v0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Same gate as CI — never publish a release that does not pass the checks.
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run check:fast
+
+      - name: Resolve versions
+        id: ver
+        run: |
+          raw_tag="${{ github.event.inputs.tag || github.ref_name }}"
+          tag_version="${raw_tag#v}"
+          pkg_version="$(node -p "require('./package.json').version")"
+          echo "tag=$raw_tag"                >> "$GITHUB_OUTPUT"
+          echo "tag_version=$tag_version"    >> "$GITHUB_OUTPUT"
+          echo "pkg_version=$pkg_version"    >> "$GITHUB_OUTPUT"
+          case "$raw_tag" in
+            *-*) echo "prerelease=true"  >> "$GITHUB_OUTPUT" ;;
+            *)   echo "prerelease=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      # Guard: the tag must match the version declared in package.json.
+      - name: Verify tag matches package.json
+        run: |
+          if [ "${{ steps.ver.outputs.tag_version }}" != "${{ steps.ver.outputs.pkg_version }}" ]; then
+            echo "::error::Tag ${{ steps.ver.outputs.tag }} does not match package.json version ${{ steps.ver.outputs.pkg_version }}." \
+                 "Bump package.json (e.g. 'npm version') and re-tag."
+            exit 1
+          fi
+
+      # Pull the matching "## X.Y.Z" section out of CHANGELOG.md for the release body.
+      - name: Extract changelog notes
+        id: notes
+        run: |
+          version="${{ steps.ver.outputs.pkg_version }}"
+          notes_file="$RUNNER_TEMP/release-notes.md"
+          awk -v ver="$version" '
+            $0 ~ "^## +" ver "([^0-9.].*)?$" { capture = 1; next }
+            capture && /^## / { exit }
+            capture { print }
+          ' CHANGELOG.md > "$notes_file"
+          # Trim leading/trailing blank lines.
+          sed -i -e '/./,$!d' "$notes_file"
+          if [ ! -s "$notes_file" ]; then
+            echo "No CHANGELOG.md entry found for $version; using an auto-generated body." >&2
+            printf 'Release %s.\n\nSee the commit history and CHANGELOG.md for details.\n' "$version" > "$notes_file"
+          fi
+          echo "file=$notes_file" >> "$GITHUB_OUTPUT"
+          echo "----- release notes -----"
+          cat "$notes_file"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${{ steps.ver.outputs.tag }}"
+          prerelease_flag=""
+          if [ "${{ steps.ver.outputs.prerelease }}" = "true" ]; then
+            prerelease_flag="--prerelease"
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" \
+              --title "$tag" \
+              --notes-file "${{ steps.notes.outputs.file }}" \
+              $prerelease_flag
+          else
+            gh release create "$tag" \
+              --title "$tag" \
+              --notes-file "${{ steps.notes.outputs.file }}" \
+              --verify-tag \
+              $prerelease_flag
+          fi

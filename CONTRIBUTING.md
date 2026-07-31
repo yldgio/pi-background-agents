@@ -47,6 +47,36 @@ still behaves as assumed. A change to these files should not be merged without a
 npm run check:llm
 ```
 
+## Releasing
+
+Releases are cut by pushing a semantic-version tag; the
+[`release` workflow](.github/workflows/release.yml) does the rest. It re-runs the CI gate
+(`typecheck` + `check:fast`), verifies the tag matches `package.json`'s `version`, extracts
+the matching `## X.Y.Z` section from [`CHANGELOG.md`](CHANGELOG.md) as the release notes,
+and publishes a GitHub Release for the tag.
+
+```bash
+# 1. Add the new "## X.Y.Z" section to CHANGELOG.md and commit it.
+# 2. Bump the version and create the matching tag in one step:
+npm version patch        # or minor / major — updates package.json and tags vX.Y.Z
+# 3. Push the commit and the tag:
+git push --follow-tags
+```
+
+The tag must be `vX.Y.Z` (optionally `vX.Y.Z-rc.1` for a pre-release, which is published as
+a GitHub pre-release) and must equal the `version` in `package.json`, or the workflow fails
+fast. Consumers then install the package as documented in the README:
+
+```bash
+pi install git:github.com/yldgio/pi-background-agents
+```
+
+Each release also gives that exact commit a stable tag and published notes on GitHub, so a
+specific version can always be checked out or referenced.
+
+You can also re-run the workflow manually from the Actions tab (`workflow_dispatch`) against
+an existing tag if a release needs to be regenerated.
+
 ## Adversarial verification discipline
 
 This repo was built, and is maintained, with **adversarial verification**: the model (or
