@@ -29,7 +29,7 @@ export default function (pi: ExtensionAPI) {
 		if (!registry) {
 			const factory = createRealSessionFactory({
 				cwd: ctx.cwd,
-				modelRegistry: ctx.modelRegistry,
+				modelRuntime: ctx.modelRegistry.runtime,
 				parentModel: ctx.model,
 			});
 			registry = new BackgroundRegistry(factory);

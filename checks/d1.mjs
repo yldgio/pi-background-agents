@@ -7,11 +7,9 @@
  * wall-time < sum of individual runtimes (proves real concurrency).
  */
 import {
-	AuthStorage,
 	createAgentSession,
 	DefaultResourceLoader,
-	getAgentDir,
-	ModelRegistry,
+	ModelRuntime,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { mkdtempSync } from "node:fs";
@@ -27,7 +25,7 @@ function pickFastModel(models) {
 	return models[0];
 }
 
-async function makeSession(model, authStorage, modelRegistry, systemPrompt) {
+async function makeSession(model, modelRuntime, systemPrompt) {
 	// Isolate resource discovery to an empty temp agentDir so the subagent does
 	// NOT load skills/extensions from the real environment.
 	const emptyAgentDir = mkdtempSync(join(tmpdir(), "pi-subagent-home-"));
@@ -43,8 +41,7 @@ async function makeSession(model, authStorage, modelRegistry, systemPrompt) {
 		agentDir: emptyAgentDir,
 		model,
 		thinkingLevel: "off",
-		authStorage,
-		modelRegistry,
+		modelRuntime,
 		tools: [],
 		resourceLoader: loader,
 		sessionManager: SessionManager.inMemory(),
@@ -70,17 +67,16 @@ async function runTimed(session, prompt) {
 }
 
 async function main() {
-	const authStorage = AuthStorage.create();
-	const modelRegistry = ModelRegistry.create(authStorage);
-	const available = await modelRegistry.getAvailable();
+	const modelRuntime = await ModelRuntime.create();
+	const available = await modelRuntime.getAvailable();
 	if (available.length === 0) throw new Error("No models available (auth?)");
 	const model = pickFastModel(available);
 
 	const sysA = "You are agent ALPHA. Reply with exactly one word: ALPHA.";
 	const sysB = "You are agent BETA. Reply with exactly one word: BETA.";
 	const [sa, sb] = await Promise.all([
-		makeSession(model, authStorage, modelRegistry, sysA),
-		makeSession(model, authStorage, modelRegistry, sysB),
+		makeSession(model, modelRuntime, sysA),
+		makeSession(model, modelRuntime, sysB),
 	]);
 
 	try {

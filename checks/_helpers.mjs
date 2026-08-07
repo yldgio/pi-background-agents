@@ -3,7 +3,7 @@
  *   - fakeFactory: controllable in-memory sessions (no LLM) for lifecycle/cap tests
  *   - realRegistry: a BackgroundRegistry backed by a fast real model for A2-style tests
  */
-import { AuthStorage, ModelRegistry } from "@earendil-works/pi-coding-agent";
+import { ModelRuntime } from "@earendil-works/pi-coding-agent";
 import { BackgroundRegistry } from "../registry.ts";
 import { createRealSessionFactory } from "../session-factory.ts";
 
@@ -72,15 +72,13 @@ function pickFastModel(models) {
 
 /** Build a registry backed by a real fast model. Returns {registry, agent}. */
 export async function realRegistry(systemPrompt = "You are a terse test agent.") {
-	const authStorage = AuthStorage.create();
-	const modelRegistry = ModelRegistry.create(authStorage);
-	const available = await modelRegistry.getAvailable();
+	const modelRuntime = await ModelRuntime.create();
+	const available = await modelRuntime.getAvailable();
 	if (available.length === 0) throw new Error("No models available (auth?)");
 	const model = pickFastModel(available);
 	const factory = createRealSessionFactory({
 		cwd: process.cwd(),
-		modelRegistry,
-		authStorage,
+		modelRuntime,
 		parentModel: model,
 	});
 	const registry = new BackgroundRegistry(factory);

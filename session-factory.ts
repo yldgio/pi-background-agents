@@ -13,6 +13,7 @@ import { join } from "node:path";
 import {
 	createAgentSession,
 	DefaultResourceLoader,
+	ModelRuntime,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import type { AgentConfig } from "./agents.ts";
@@ -34,10 +35,7 @@ export function resolveTools(agentTools: string[] | undefined): string[] {
 
 export interface RealFactoryDeps {
 	cwd: string;
-	// biome-ignore lint/suspicious/noExplicitAny: SDK types not imported here
-	modelRegistry: any;
-	// biome-ignore lint/suspicious/noExplicitAny: SDK AuthStorage
-	authStorage?: any;
+	modelRuntime: ModelRuntime;
 	// biome-ignore lint/suspicious/noExplicitAny: SDK Model (ctx.model) for inheritance
 	parentModel?: any;
 }
@@ -55,7 +53,7 @@ function resolveModel(deps: RealFactoryDeps, agent: AgentConfig, modelId?: strin
 	const slash = spec.indexOf("/");
 	const provider = slash >= 0 ? spec.slice(0, slash) : spec;
 	const id = slash >= 0 ? spec.slice(slash + 1) : spec;
-	const found = deps.modelRegistry.find(provider, id);
+	const found = deps.modelRuntime.getModel(provider, id);
 	if (found) return found;
 	if (deps.parentModel) return deps.parentModel;
 	throw new Error(`Model not found: "${spec}" (and no parent model to inherit).`);
@@ -77,8 +75,7 @@ export function createRealSessionFactory(deps: RealFactoryDeps): SessionFactory 
 			agentDir: emptyAgentDir,
 			model,
 			thinkingLevel: "off",
-			authStorage: deps.authStorage,
-			modelRegistry: deps.modelRegistry,
+			modelRuntime: deps.modelRuntime,
 			tools: resolveTools(agent.tools),
 			resourceLoader: loader,
 			sessionManager: SessionManager.inMemory(deps.cwd),
