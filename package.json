@@ -1,6 +1,6 @@
 {
   "name": "pi-background-agents",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Background, re-contactable subagents for pi — delegate tasks to isolated in-process AgentSessions.",
   "type": "module",
   "license": "MIT",
